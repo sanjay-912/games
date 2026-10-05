@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#111827">
+<title>Mini Game Zone 🎮</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:#0f172a;color:#fff}
+body{display:flex;justify-content:center}
+#app{width:min(100vw,520px);height:100vh;position:relative;overflow:hidden;background:linear-gradient(160deg,#111827,#1e293b)}
+.screen{position:absolute;inset:0;padding:24px;display:none;flex-direction:column;overflow:auto}
+.screen.active{display:flex}
+h1{font-size:36px;margin:10px 0 5px;text-align:center}
+.subtitle{text-align:center;color:#cbd5e1;margin:0 0 22px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:auto 0}
+.card{border:1px solid #ffffff22;background:#ffffff12;border-radius:20px;padding:22px 12px;text-align:center;color:white;font-size:18px;font-weight:700;min-height:125px}
+.card:active{transform:scale(.97);background:#ffffff20}
+.icon{font-size:42px;display:block;margin-bottom:8px}
+button{border:0;border-radius:16px;padding:14px 22px;background:#38bdf8;color:#082f49;font-size:18px;font-weight:800;margin:8px;touch-action:manipulation}
+.back{background:#334155;color:#fff;position:absolute;top:12px;left:12px;font-size:14px;padding:9px 14px}
+.panel{margin:auto;text-align:center;width:100%}
+.big{font-size:64px;font-weight:900;margin:12px}
+#reactionBox{height:260px;border-radius:25px;background:#334155;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;user-select:none}
+#reactionBox.go{background:#22c55e;color:#052e16}
+#reactionResult{font-size:25px;font-weight:800;margin:14px}
+#oddGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;max-width:380px;margin:20px auto}
+.odd{aspect-ratio:1;background:#ffffff12;border-radius:12px;border:1px solid #ffffff15;font-size:30px;display:flex;align-items:center;justify-content:center}
+#question{font-size:25px;font-weight:800;line-height:1.25;margin:25px 5px}
+.answers{display:grid;gap:10px}
+.answer{background:#334155;color:#fff;width:100%;margin:0}
+#targetArea{height:55vh;position:relative;border-radius:22px;background:#ffffff08;overflow:hidden;margin-top:20px}
+#target{position:absolute;width:58px;height:58px;border-radius:50%;background:#f97316;border:6px solid #fed7aa;display:none;box-shadow:0 0 0 5px #f9731633}
+#road{position:relative;height:62vh;background:linear-gradient(90deg,#334155 0 10%,#475569 10% 90%,#334155 90%);overflow:hidden;border-radius:22px;margin-top:20px}
+.lane{position:absolute;top:-100%;height:300%;width:7px;background:repeating-linear-gradient(#fff 0 55px,transparent 55px 110px);opacity:.7;animation:road .7s linear infinite}
+.l1{left:33%}.l2{left:66%}
+@keyframes road{to{transform:translateY(110px)}}
+.car{position:absolute;width:54px;height:82px;border-radius:13px;background:#38bdf8;bottom:20px;left:calc(50% - 27px);z-index:3}
+.enemyCar{position:absolute;width:54px;height:82px;border-radius:13px;background:#ef4444;z-index:2}
+.hud{display:flex;justify-content:space-between;font-size:18px;font-weight:800}
+.note{color:#cbd5e1;text-align:center;font-size:14px}
+</style>
+</head>
+<body>
+<div id="app">
+
+<section id="home" class="screen active">
+<h1>🎮 MINI GAME ZONE</h1>
+<p class="subtitle">5 tiny games. How good are you?</p>
+<div class="grid">
+<button class="card" onclick="openGame('reaction')"><span class="icon">⚡</span>Reaction Test</button>
+<button class="card" onclick="openGame('odd')"><span class="icon">👀</span>Spot the Odd One</button>
+<button class="card" onclick="openGame('quiz')"><span class="icon">🧠</span>Trick Questions</button>
+<button class="card" onclick="openGame('tap')"><span class="icon">🎯</span>Perfect Tap</button>
+<button class="card" onclick="openGame('car')"><span class="icon">🚗</span>Traffic Dodge</button>
+</div>
+<p class="note">No login • No download • Just play 😄</p>
+</section>
+
+<section id="reaction" class="screen">
+<button class="back" onclick="home()">← Games</button>
+<div class="panel">
+<h1>⚡ Reaction Test</h1><p class="subtitle">Wait for green, then TAP!</p>
+<div id="reactionBox" onclick="reactionTap()">PRESS START</div>
+<div id="reactionResult"></div>
+<button onclick="reactionStart()">START</button>
+</div>
+</section>
+
+<section id="odd" class="screen">
+<button class="back" onclick="home()">← Games</button>
+<div class="panel">
+<h1>👀 Spot the Odd One</h1>
+<p class="subtitle">Find the different symbol!</p>
+<div id="oddGrid"></div>
+<div id="oddResult"></div>
+<button onclick="oddStart()">NEW ROUND</button>
+</div>
+</section>
+
+<section id="quiz" class="screen">
+<button class="back" onclick="home()">← Games</button>
+<div class="panel">
+<h1>🧠 Trick Questions</h1>
+<div id="question"></div>
+<div class="answers" id="answers"></div>
+<div id="quizResult"></div>
+<button id="nextBtn" style="display:none" onclick="nextQuestion()">NEXT</button>
+</div>
+</section>
+
+<section id="tap" class="screen">
+<button class="back" onclick="home()">← Games</button>
+<div class="panel">
+<h1>🎯 Perfect Tap</h1>
+<p class="subtitle">Hit the target as many times as possible in 20 seconds.</p>
+<div class="hud"><span>Score: <span id="tapScore">0</span></span><span>Time: <span id="tapTime">20</span></span></div>
+<div id="targetArea"><div id="target" onclick="hitTarget()"></div></div>
+<button onclick="tapStart()">START</button>
+<div id="tapResult"></div>
+</div>
+</section>
+
+<section id="car" class="screen">
+<button class="back" onclick="home()">← Games</button>
+<h1>🚗 Traffic Dodge</h1>
+<div class="hud"><span>Distance: <span id="carScore">0</span>m</span><span>Best: <span id="carBest">0</span>m</span></div>
+<div id="road"><div class="lane l1"></div><div class="lane l2"></div><div id="playerCar" class="car"></div></div>
+<div style="text-align:center"><button onpointerdown="carMove(-1)">⬅️</button><button onpointerdown="carMove(1)">➡️</button><button onclick="carStart()">START</button></div>
+<p class="note">Dodge the red cars. Use the buttons.</p>
+</section>
+
+</div>
+
+<script>
+const screens=document.querySelectorAll('.screen');
+function openGame(id){screens.forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='odd')oddStart()}
+function home(){screens.forEach(s=>s.classList.remove('active'));document.getElementById('home').classList.add('active');stopCar()}
+function rand(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+
+/* Reaction */
+let reactionState='idle',reactionTimer;
+function reactionStart(){
+ clearTimeout(reactionTimer);reactionState='waiting';
+ const b=document.getElementById('reactionBox');b.className='';b.textContent='WAIT...';document.getElementById('reactionResult').textContent='';
+ reactionTimer=setTimeout(()=>{reactionState='go';b.className='go';b.textContent='TAP NOW!';window.reactionAt=performance.now()},rand(1500,4500))
+}
+function reactionTap(){
+ const b=document.getElementById('reactionBox'),r=document.getElementById('reactionResult');
+ if(reactionState==='waiting'){clearTimeout(reactionTimer);reactionState='idle';b.textContent='TOO EARLY! 😄';r.textContent='Try again.';return}
+ if(reactionState==='go'){let ms=Math.round(performance.now()-reactionAt);reactionState='idle';b.className='';b.textContent=ms+' ms';r.textContent=ms<250?'🏆 Lightning fast!':ms<350?'😎 Very fast!':ms<500?'👍 Good reaction!':'😂 Need coffee!'}
+}
+
+/* Odd one */
+let oddAnswer=0,oddLevel=0;
+function oddStart(){
+ oddLevel=Math.min(4,oddLevel);const grid=document.getElementById('oddGrid');grid.innerHTML='';
+ const size=oddLevel>=3?6:5,total=size*size;oddAnswer=rand(0,total-1);
+ const normal=oddLevel%2?'●':'◆',different=oddLevel%2?'◆':'●';
+ for(let i=0;i<total;i++){let d=document.createElement('div');d.className='odd';d.textContent=i===oddAnswer?different:normal;d.onclick=()=>oddPick(i);grid.appendChild(d)}
+ document.getElementById('oddResult').textContent=''; 
+}
+function oddPick(i){const r=document.getElementById('oddResult');if(i===oddAnswer){oddLevel=Math.min(4,oddLevel+1);r.textContent='🎯 Correct! Next round is harder.'}else r.textContent='😂 Not quite! Try another round.'}
+
+/* Quiz */
+const qs=[
+['Which month has 28 days?',['February','All months','January','None'],1],
+['What gets wetter as it dries?',['A towel','Rain','A sponge','Cloud'],0],
+['If you have 3 apples and take away 2, how many do you have?',['1','2','3','5'],1],
+['Which is heavier?',['1 kg iron','1 kg cotton','They weigh the same','Depends on colour'],2],
+['What has hands but cannot clap?',['A clock','A robot','A tree','A chair'],0]
+];
+let qi=0,qscore=0;
+function loadQuiz(){const q=qs[qi];document.getElementById('question').textContent=(qi+1)+'. '+q[0];const a=document.getElementById('answers');a.innerHTML='';q[1].forEach((x,i)=>{let b=document.createElement('button');b.className='answer';b.textContent=x;b.onclick=()=>answerQuiz(i);a.appendChild(b)});document.getElementById('quizResult').textContent='';document.getElementById('nextBtn').style.display='none'}
+function answerQuiz(i){const q=qs[qi],r=document.getElementById('quizResult');document.querySelectorAll('.answer').forEach(b=>b.disabled=true);if(i===q[2]){qscore++;r.textContent='✅ Correct!'}else r.textContent='❌ Nice try! Correct answer: '+q[1][q[2]];document.getElementById('nextBtn').style.display='inline-block'}
+function nextQuestion(){qi++;if(qi>=qs.length){document.getElementById('question').textContent='🏆 Score: '+qscore+'/'+qs.length;document.getElementById('answers').innerHTML='';document.getElementById('quizResult').textContent=qscore===5?'Genius mode unlocked! 🧠':qscore>=3?'Pretty smart! 😎':'Good try! 😄';document.getElementById('nextBtn').style.display='none';qi=0;qscore=0}else loadQuiz()}
+
+/* Perfect Tap */
+let tapRunning=false,tapScore=0,tapEnd=0,tapTimer;
+function tapStart(){tapRunning=true;tapScore=0;tapEnd=Date.now()+20000;document.getElementById('tapScore').textContent=0;document.getElementById('tapResult').textContent='';document.getElementById('target').style.display='block';placeTarget();clearInterval(tapTimer);tapTimer=setInterval(()=>{let left=Math.max(0,Math.ceil((tapEnd-Date.now())/1000));document.getElementById('tapTime').textContent=left;if(left<=0){clearInterval(tapTimer);tapRunning=false;document.getElementById('target').style.display='none';document.getElementById('tapResult').textContent='🏆 Final score: '+tapScore}},100)}
+function placeTarget(){const a=document.getElementById('targetArea'),t=document.getElementById('target');t.style.left=rand(5,Math.max(5,a.clientWidth-65))+'px';t.style.top=rand(5,Math.max(5,a.clientHeight-65))+'px'}
+function hitTarget(){if(!tapRunning)return;tapScore++;document.getElementById('tapScore').textContent=tapScore;placeTarget()}
+
+/* Car */
+let carRunning=false,carX=0,carEnemies=[],carRaf,carLast=0,carDistance=0;
+function carStart(){stopCar();carRunning=true;carX=document.getElementById('road').clientWidth/2-27;document.getElementById('playerCar').style.left=carX+'px';carDistance=0;document.getElementById('carScore').textContent=0;carLast=performance.now();carRaf=requestAnimationFrame(carLoop)}
+function carMove(d){if(!carRunning)return;carX+=d*48;carX=Math.max(5,Math.min(document.getElementById('road').clientWidth-59,carX));document.getElementById('playerCar').style.left=carX+'px'}
+function stopCar(){carRunning=false;cancelAnimationFrame(carRaf);carEnemies.forEach(e=>e.remove());carEnemies=[]}
+function carLoop(t){if(!carRunning)return;const road=document.getElementById('road'),dt=Math.min(35,t-carLast);carLast=t;carDistance+=dt/100;document.getElementById('carScore').textContent=Math.floor(carDistance);if(Math.random()<.025){let e=document.createElement('div');e.className='enemyCar';e.style.left=rand(5,road.clientWidth-59)+'px';e.style.top='-90px';road.appendChild(e);carEnemies.push(e)}const pr=document.getElementById('playerCar').getBoundingClientRect();carEnemies=carEnemies.filter(e=>{let y=parseFloat(e.style.top)+5*dt/16.67;e.style.top=y+'px';let r=e.getBoundingClientRect();if(!(pr.right<r.left||pr.left>r.right||pr.bottom<r.top||pr.top>r.bottom)){let best=Math.max(Number(localStorage.carBest||0),Math.floor(carDistance));localStorage.carBest=best;document.getElementById('carBest').textContent=best;alert('💥 Crash!\\nDistance: '+Math.floor(carDistance)+'m');stopCar();return false}if(y>road.clientHeight){e.remove();return false}return true});carRaf=requestAnimationFrame(carLoop)}
+document.getElementById('carBest').textContent=localStorage.carBest||0;
+loadQuiz();
+</script>
+</body>
+</html>
