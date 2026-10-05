@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#111827">
+<title>Arrow Rush 🚗</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#111827;color:white}
+body{display:flex;justify-content:center;align-items:center}
+#game{position:relative;width:min(100vw,480px);height:100vh;max-height:900px;overflow:hidden;background:#222}
+#road{position:absolute;inset:0;background:linear-gradient(90deg,#303030 0 12%,#444 12% 88%,#303030 88%);overflow:hidden}
+.lane{position:absolute;top:-20%;height:140%;width:8px;background:repeating-linear-gradient(to bottom,#eee 0 55px,transparent 55px 110px);opacity:.8}
+.l1{left:29%}.l2{left:50%}.l3{left:71%}
+#hud{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;z-index:10;font-weight:bold;text-shadow:0 2px 4px #000}
+.badge{background:#0009;padding:8px 12px;border-radius:12px}
+#player{position:absolute;width:58px;height:92px;border-radius:14px;background:linear-gradient(#22c55e,#15803d);bottom:125px;left:calc(50% - 29px);z-index:5;box-shadow:0 8px 18px #0008}
+#player:before,#player:after{content:"";position:absolute;top:12px;width:12px;height:25px;background:#93c5fd;border-radius:5px}
+#player:before{left:8px}#player:after{right:8px}
+.wheel{position:absolute;width:8px;height:22px;background:#111;border-radius:4px;top:18px}
+.w1{left:-5px}.w2{right:-5px}
+.enemy{position:absolute;width:58px;height:92px;border-radius:14px;background:linear-gradient(#ef4444,#991b1b);z-index:4;box-shadow:0 8px 18px #0008}
+.enemy:before,.enemy:after{content:"";position:absolute;top:12px;width:12px;height:25px;background:#fef08a;border-radius:5px}
+.enemy:before{left:8px}.enemy:after{right:8px}
+#start,#gameover{position:absolute;inset:0;z-index:20;background:#000b;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:25px}
+#gameover{display:none}
+h1{font-size:42px;margin:0 0 10px}p{opacity:.9}
+button{border:0;border-radius:16px;background:#22c55e;color:white;font-size:20px;font-weight:bold;padding:14px 28px;box-shadow:0 5px 0 #166534;margin:8px;touch-action:manipulation}
+button:active{transform:translateY(3px);box-shadow:0 2px 0 #166534}
+#controls{position:absolute;z-index:15;bottom:20px;left:0;right:0;display:flex;justify-content:center;gap:18px}
+.ctrl{width:82px;height:62px;border-radius:18px;background:#ffffff22;border:2px solid #ffffff55;font-size:32px;color:white;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none}
+.small{font-size:14px;opacity:.75}
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="road">
+    <div class="lane l1"></div><div class="lane l2"></div><div class="lane l3"></div>
+  </div>
+  <div id="hud"><div class="badge">🏆 <span id="score">0</span></div><div class="badge">🚗 Arrow Rush</div></div>
+  <div id="player"><i class="wheel w1"></i><i class="wheel w2"></i></div>
+  <div id="controls">
+    <div class="ctrl" id="left">⬅️</div>
+    <div class="ctrl" id="right">➡️</div>
+  </div>
+  <div id="start">
+    <h1>🚗 Arrow Rush</h1>
+    <p>Dodge the red cars and survive as long as possible!</p>
+    <p class="small">Use the buttons or your keyboard's ← → arrows.</p>
+    <button id="startBtn">START GAME</button>
+  </div>
+  <div id="gameover">
+    <h1>💥 CRASH!</h1>
+    <p>Your score: <b id="finalScore">0</b></p>
+    <button id="restartBtn">PLAY AGAIN</button>
+  </div>
+</div>
+<script>
+const game=document.getElementById('game'),player=document.getElementById('player');
+const scoreEl=document.getElementById('score'),finalScore=document.getElementById('finalScore');
+const start=document.getElementById('start'),over=document.getElementById('gameover');
+let x=0, score=0, running=false, speed=5, spawnTimer=0, last=0, enemies=[], raf;
+
+function laneX(){const lanes=[.19,.395,.605,.81]; return lanes[Math.floor(Math.random()*lanes.length)];}
+function reset(){
+  enemies.forEach(e=>e.el.remove()); enemies=[];
+  x=game.clientWidth/2-29; player.style.left=x+'px';
+  score=0; speed=5; spawnTimer=0; scoreEl.textContent=0;
+}
+function startGame(){reset();running=true;start.style.display='none';over.style.display='none';last=performance.now();raf=requestAnimationFrame(loop)}
+function endGame(){running=false;cancelAnimationFrame(raf);finalScore.textContent=score;over.style.display='flex'}
+function move(dir){if(!running)return;x+=dir*45;x=Math.max(8,Math.min(game.clientWidth-66,x));player.style.left=x+'px'}
+function spawn(){
+  const el=document.createElement('div');el.className='enemy';
+  const left=game.clientWidth*laneX()-29;
+  el.style.left=left+'px';el.style.top='-105px';game.appendChild(el);
+  enemies.push({el,y:-105,left});
+}
+function hit(a,b){
+  return !(a.right<b.left || a.left>b.right || a.bottom<b.top || a.top>b.bottom);
+}
+function loop(t){
+  if(!running)return;
+  const dt=Math.min(32,t-last);last=t;
+  spawnTimer-=dt;
+  if(spawnTimer<=0){spawn();spawnTimer=Math.max(430,900-score*4);speed=Math.min(13,5+score/35)}
+  const pr=player.getBoundingClientRect();
+  enemies=enemies.filter(o=>{
+    o.y+=speed*dt/16.67;o.el.style.top=o.y+'px';
+    const r=o.el.getBoundingClientRect();
+    if(hit(pr,r)){endGame();return false}
+    if(o.y>game.clientHeight+110){o.el.remove();score++;scoreEl.textContent=score;return false}
+    return true;
+  });
+  // subtle road animation
+  document.querySelectorAll('.lane').forEach(l=>l.style.transform=`translateY(${(t/3)%110}px)`);
+  raf=requestAnimationFrame(loop);
+}
+document.getElementById('startBtn').onclick=startGame;
+document.getElementById('restartBtn').onclick=startGame;
+document.getElementById('left').addEventListener('pointerdown',()=>move(-1));
+document.getElementById('right').addEventListener('pointerdown',()=>move(1));
+document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')move(-1);if(e.key==='ArrowRight')move(1);if(e.key===' '&&!running)startGame()});
+</script>
+</body>
+</html>
